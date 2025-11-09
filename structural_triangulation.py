@@ -316,7 +316,7 @@ def Pose3D_inference(n_cams, human_tree, poses_2d, confidences, lengths, Project
 
     x0 = -TrM_inv @ (Mrow @ G[3:, 3:] @ b - Irow @ m)
     X = G @ np.concatenate((x0, b), axis=0)
-    return X.reshape(17, 3)
+    return X.reshape(Nj, 3)
 
 
 def Lagrangian_method(A, e, b0, n_iter, Nj, lengths, D31):
@@ -434,7 +434,7 @@ def structural_triangulation_torch(n_cams, human_tree, poses_2d, confidences, le
 
     x0 = -TrM_inv @ (Mrow @ G[:, 3:, 3:] @ b - torch.sum(m.view(bs, -1, 3, 1), dim=1))
     X = G @ torch.concatenate((x0, b), axis=1)
-    return X.reshape(bs, 17, 3)
+    return X.reshape(bs, Nj, 3)
 
 
 def block_diag_batch(Ms):
@@ -445,5 +445,5 @@ def block_diag_batch(Ms):
     result = torch.zeros(Ms.shape[:-3] + (num*h, num*w), device=Ms.device)
     for i in range(num):
         result[..., i*h:(i+1)*h, i*w:(i+1)*w] = Ms[..., i, :, :]
-    
+
     return result
