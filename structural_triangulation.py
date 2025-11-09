@@ -245,7 +245,7 @@ def get_inner_mat(u, v):
 
 
 def Pose3D_inference(n_cams, human_tree, poses_2d, confidences, lengths, Projections,
-        method, n_step):
+        method, n_step,p_inv = False):
     """
     The main procedure of structural triangulation & step contraint algorithm
     input params:
@@ -297,8 +297,8 @@ def Pose3D_inference(n_cams, human_tree, poses_2d, confidences, lengths, Project
 
     A = Q.T @ G.T @ D @ G @ Q
     beta = (p.T @ G.T @ D @ G @ Q + m.T @ G @ Q).T
+    A_inv = np.linalg.inv(A) if p_inv else np.linalg.pinv(A)
 
-    A_inv = np.linalg.inv(A)
     b0 = A_inv @ beta
     D31 = np.zeros((3*Nj-3, Nj-1))
     for i in range(Nj-1):
