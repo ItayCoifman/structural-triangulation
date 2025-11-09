@@ -165,6 +165,81 @@ def create_human_tree(data_type="human36m"):
     return human_tree
 
 
+def create_human_tree_from_kinematic_tree(joint_names, kinematic_tree):
+    """
+    Create a DictTree structure from joint_names list and kinematic_tree dictionary.
+
+    Args:
+        joint_names: List of joint names (e.g., ["pelvis", "spine t12", "c7", ...])
+        kinematic_tree: Dictionary mapping joint names to their parent names
+                       (e.g., {"spine t12": "pelvis", "c7": "spine t12", ...})
+                       Root joint should map to None
+
+    Returns:
+        DictTree: The constructed human tree structure
+
+    Example:
+        joint_names = ["pelvis", "spine t12", "c7", "head"]
+        kinematic_tree = {
+            "pelvis": None,
+            "spine t12": "pelvis",
+            "c7": "spine t12",
+            "head": "c7"
+        }
+        human_tree = create_human_tree_from_kinematic_tree(joint_names, kinematic_tree)
+    """
+    n_joints = len(joint_names)
+
+    # Find the root joint (the one with None as parent)
+    root_name = None
+    for joint, parent in kinematic_tree.items():
+        if parent is None:
+            root_name = joint
+            break
+
+    if root_name is None:
+        raise ValueError("No root joint found in kinematic_tree (no joint with parent=None)")
+
+    if root_name not in joint_names:
+        raise ValueError(f"Root joint '{root_name}' not found in joint_names list")
+
+    root_index = joint_names.index(root_name)
+
+    # Create the DictTree with the root node
+    human_tree = DictTree(n_joints, {"name": root_name, "index": root_index})
+
+    # Add all other nodes
+    for joint_name in joint_names:
+        if joint_name == root_name:
+            continue  # Skip root, already added
+
+        if joint_name not in kinematic_tree:
+            raise ValueError(f"Joint '{joint_name}' not found in kinematic_tree dictionary")
+
+        parent_name = kinematic_tree[joint_name]
+        if parent_name is None:
+            raise ValueError(f"Multiple root joints found: '{root_name}' and '{joint_name}'")
+
+        if parent_name not in joint_names:
+            raise ValueError(f"Parent joint '{parent_name}' for '{joint_name}' not found in joint_names list")
+
+        joint_index = joint_names.index(joint_name)
+        parent_index = joint_names.index(parent_name)
+
+        human_tree.create_node(joint_name, joint_index, parent=parent_index)
+
+    # Identify left, right, and middle bones
+    human_tree.left_bones = [joint_names.index(j) for j in joint_names if 'left' in j.lower()]
+    human_tree.right_bones = [joint_names.index(j) for j in joint_names if 'right' in j.lower()]
+    human_tree.middle_bones = [joint_names.index(j) for j in joint_names
+                               if 'left' not in j.lower() and 'right' not in j.lower() and j != root_name]
+
+    # Compute conversion matrices
+    human_tree.get_conv_mat()
+
+    return human_tree
+
+
 def get_inner_mat(u, v):
     return np.array([[1, 0, -u], [0, 1, -v], [-u, -v, u**2+v**2]])
 
